@@ -226,7 +226,7 @@ footer .mono{font-size:10.5px;letter-spacing:.14em}
 @media(max-width:760px){.ver,#navClock{display:none}.nbtn span{display:none}.nbtn{padding:8px}.rng-grid{grid-template-columns:1fr}.kanji{font-size:64vw;top:0;right:-10%}}
 @media(max-width:640px){section{padding:72px 16px}.deck-actions{grid-template-columns:1fr 1fr}.mod-grid{grid-template-columns:1fr}.bay-bar{align-items:flex-start;flex-direction:column}.clockline{margin-top:22px}}
 </style>
-</head>
+<link rel="manifest" href="manifest.webmanifest"><meta name="mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon-192.png"></head>
 <body>
 <a class="skip" href="#overview">本文へスキップ</a>
 <div id="progress" aria-hidden="true"></div>
@@ -770,5 +770,5 @@ $('#ftYear').textContent=new Date().getFullYear();
 resize();makeGrain();buildSwatches();applyCfg({save:false});clockTick();setInterval(clockTick,250);requestAnimationFrame(frame);requestAnimationFrame(()=>document.body.classList.add('loaded'));
 })();
 </script>
-</body>
+<script>/*FOXBASE_PWA*/if("serviceWorker"in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}</script></body>
 </html>
