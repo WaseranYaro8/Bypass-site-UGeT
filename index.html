@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070A12" id="metaTheme">
+<meta name="description" content="FOXBASE 1.0 — 時間と季節に自動適応する公開ベースUI">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FOXBASE 1.0</title>
+<script>document.documentElement.classList.add('js');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --acc:#6FD7FF;--acc2:#FFB13D;--aur1:#27E0B0;--aur2:#3E7BFF;
+  --sky0:#070A12;--sky3:#1B3350;
+  --edge:rgba(111,215,255,.22);--edge2:rgba(111,215,255,.48);--glowc:rgba(111,215,255,.30);
+  --ink:#EDF2F7;--dim:#9AA7B4;--ok:#58E6A8;--warn:#FFC46B;--danger:#FF8A97;
+  --panel:rgba(9,12,17,.60);--panel2:rgba(5,7,11,.48);
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  --disp:"Space Grotesk","Noto Sans JP",system-ui,sans-serif;
+  --body:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --sx:50%;--sy:38%;--mx:0;--my:0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--sky0);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.8;overflow-x:hidden;transition:background .6s}
+::selection{background:var(--acc);color:#0A0D12}
+::-webkit-scrollbar{width:10px;height:8px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,.04)}
+::-webkit-scrollbar-thumb{background:linear-gradient(var(--acc),var(--acc2));border-radius:6px;border:2px solid rgba(0,0,0,.4)}
+::-webkit-scrollbar-thumb:hover{background:var(--acc)}
+*{scrollbar-width:thin;scrollbar-color:var(--acc) rgba(255,255,255,.05)}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.ic{width:18px;height:18px;flex:none}
+.hide{display:none!important}
+.skip{position:absolute;top:-48px;left:12px;z-index:100;padding:10px 16px;background:var(--acc);color:#0A0D12;border-radius:8px;font-weight:700;transition:top .2s}
+.skip:focus{top:8px}
+#scene{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+#spot{position:fixed;inset:0;z-index:1;pointer-events:none;mix-blend-mode:screen;opacity:.55;
+  background:radial-gradient(620px circle at var(--sx) var(--sy),var(--glowc),transparent 62%)}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(120% 90% at 50% 8%,transparent 42%,rgba(3,5,9,.55) 100%),linear-gradient(rgba(3,5,9,0) 70%,rgba(3,5,9,.5))}
+#progress{position:fixed;top:0;left:0;z-index:70;height:2px;width:100%;transform-origin:left;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--acc),var(--acc2),var(--aur1))}
+.bar{position:fixed;left:0;right:0;z-index:40;background:#020308;height:0;transition:height .5s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+.bar.top{top:0}.bar.bottom{bottom:0}
+body.letterbox .bar{height:7vh}
+#topnav{position:fixed;top:0;left:0;right:0;z-index:50;height:60px;display:flex;align-items:center;gap:14px;padding:0 clamp(12px,3vw,28px);background:rgba(6,8,12,.58);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--edge)}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.22em;flex:none}
+.brand .ic{width:22px;height:22px;color:var(--acc)}
+.ver{font-family:var(--mono);font-style:normal;font-size:9px;letter-spacing:.12em;color:var(--dim);border:1px solid var(--edge);border-radius:4px;padding:2px 6px}
+.links{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.links::-webkit-scrollbar{display:none}
+.nav-link{position:relative;flex:none;padding:8px 11px;font-size:13px;color:var(--dim);transition:color .25s}
+.nav-link::after{content:"";position:absolute;left:11px;right:11px;bottom:3px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--acc),var(--acc2));transform:scaleX(0);transform-origin:left;transition:transform .3s}
+.nav-link:hover,.nav-link.act{color:var(--ink)}
+.nav-link.act::after{transform:scaleX(1)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+#navClock{font-size:12px;color:var(--dim);letter-spacing:.08em}
+.nbtn{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid var(--edge);border-radius:8px;color:var(--dim);transition:.25s}
+.nbtn:hover{color:var(--acc);border-color:var(--edge2);box-shadow:0 0 14px var(--glowc)}
+.nbtn.on{color:var(--acc);border-color:var(--edge2);box-shadow:0 0 14px var(--glowc)}
+.nbtn .ic{width:16px;height:16px}
+.nbtn span{font-family:var(--mono);font-size:10px;letter-spacing:.1em}
+main{position:relative;z-index:2}
+section{position:relative;max-width:1280px;margin:0 auto;padding:96px clamp(16px,4vw,40px);scroll-margin-top:72px}
+.sec-h{margin-bottom:36px}
+.ovl{font-family:var(--mono);font-size:11px;letter-spacing:.32em;color:var(--acc);text-transform:uppercase}
+.sec-h h2{font-size:clamp(1.7rem,3.4vw,2.5rem);font-weight:700;margin-top:8px;letter-spacing:.04em}
+.lead{color:var(--dim);font-size:14px;max-width:680px;margin-top:10px}
+.panel{background:var(--panel);border:1px solid var(--edge);border-radius:16px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);position:relative;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.28)}
+.panel::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--acc),var(--acc2),transparent 70%);opacity:.7;pointer-events:none}
+.panel::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(420px circle at 20% 0%,rgba(255,255,255,.05),transparent 60%)}
+#overview{min-height:100vh;min-height:100svh;display:flex;align-items:center;padding-top:110px;padding-bottom:70px}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:start;width:100%;position:relative;z-index:2}
+.ttl{font-family:var(--disp);font-weight:700;font-size:clamp(3.2rem,8vw,6.2rem);line-height:.95;letter-spacing:.02em;margin:14px 0 18px;text-shadow:0 0 44px var(--glowc)}
+.ttl span{color:var(--acc);background:linear-gradient(100deg,var(--acc),var(--acc2),var(--aur1),var(--acc));background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:sweep 7s linear infinite}
+@keyframes sweep{to{background-position:220% 0}}
+.hero-lead{color:var(--dim);max-width:560px;font-size:15px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.badge{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);border:1px solid var(--edge);border-radius:999px;padding:5px 10px;background:var(--panel2)}
+.badge b{color:var(--acc);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0 26px}
+.chip{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--edge);border-radius:999px;background:var(--panel2);font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;transition:.25s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+button.chip:hover{border-color:var(--edge2);box-shadow:0 0 16px var(--glowc);transform:translateY(-1px)}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc);animation:pulse 2.2s infinite}
+.chip.static{color:var(--dim)}
+.chip.static .dot{background:var(--acc2);box-shadow:0 0 8px var(--acc2);animation:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:500;transition:.25s;border:1px solid transparent;position:relative}
+.btn.primary{background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0D12;font-weight:700;box-shadow:0 6px 26px var(--glowc)}
+.btn.primary:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.btn.ghost{border-color:var(--edge);background:var(--panel2);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--edge2);box-shadow:0 0 16px var(--glowc);transform:translateY(-2px)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}
+.clockline{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:30px;padding-top:20px;border-top:1px dashed rgba(255,255,255,.12)}
+.clock{font-family:var(--mono);font-weight:600;font-size:clamp(2.2rem,4.6vw,3.4rem);letter-spacing:.04em;line-height:1;font-variant-numeric:tabular-nums}
+.cl{animation:blink 1s steps(2) infinite;color:var(--acc)}
+@keyframes blink{50%{opacity:.25}}
+#ckDate{font-family:var(--mono);font-size:12px;color:var(--dim);letter-spacing:.12em}
+.syncrow{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;color:var(--dim)}
+.syncrow .dot{width:6px;height:6px;border-radius:50%;background:var(--acc2);box-shadow:0 0 8px var(--acc2);animation:pulse 1.8s infinite}
+.kanji{position:absolute;right:-2%;top:2%;z-index:1;font-family:var(--body);font-weight:700;font-size:clamp(200px,30vw,480px);line-height:1;color:transparent;-webkit-text-stroke:1.5px var(--edge2);opacity:.4;user-select:none;pointer-events:none;transform:translate(calc(var(--mx)*-16px),calc(var(--my)*-10px))}
+.vtxt{position:absolute;left:12px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;letter-spacing:.5em;font-size:11px;color:var(--dim);z-index:2;border-left:1px solid var(--edge);padding-left:12px}
+.deck{padding:22px;scroll-margin-top:84px}
+.deck-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.deck-h h2{font-size:16px;font-weight:700;letter-spacing:.06em}
+.deck-h .ovl{font-size:9.5px}
+.qsel{background:rgba(0,0,0,.4);border:1px solid var(--edge);color:var(--ink);border-radius:8px;padding:6px 8px;font-family:var(--mono);font-size:11px}
+.field{margin-bottom:16px}
+.f-lab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.f-jp{font-size:12.5px;font-weight:500}
+.f-lab .ovl{font-size:9.5px}
+.f-lab output{font-family:var(--mono);font-size:11.5px;color:var(--acc)}
+.seg{display:flex;gap:4px;background:rgba(0,0,0,.35);border:1px solid var(--edge);border-radius:10px;padding:4px}
+.seg button{flex:1;padding:7px 4px;border-radius:7px;font-size:12px;color:var(--dim);transition:.2s;white-space:nowrap}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0D12;font-weight:700;box-shadow:0 2px 12px var(--glowc)}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.presets button{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:6px 10px;border-radius:999px;border:1px solid var(--edge);color:var(--dim);background:rgba(0,0,0,.3);transition:.2s}
+.presets button:hover{color:var(--acc);border-color:var(--edge2);box-shadow:0 0 12px var(--glowc)}
+.rng-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;--p:50%}
+input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--acc2) var(--p),rgba(255,255,255,.13) var(--p))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;margin-top:-6px;border-radius:50%;background:var(--ink);border:3px solid var(--acc);box-shadow:0 0 10px var(--glowc);transition:transform .15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+input[type=range]::-moz-range-track{height:5px;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--acc2) var(--p),rgba(255,255,255,.13) var(--p))}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--ink);border:3px solid var(--acc);box-shadow:0 0 10px var(--glowc)}
+input[type=range]:disabled{opacity:.35}
+.tgl-row{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 16px}
+.tgl{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:12.5px}
+.tgl input{position:absolute;opacity:0;width:1px;height:1px}
+.tgl-track{width:36px;height:20px;border-radius:999px;background:rgba(255,255,255,.13);border:1px solid var(--edge);position:relative;transition:.25s;flex:none}
+.tgl-track .knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--dim);transition:.25s}
+.tgl input:checked + .tgl-track{background:linear-gradient(120deg,var(--acc),var(--acc2));border-color:transparent}
+.tgl input:checked + .tgl-track .knob{transform:translateX(16px);background:#0A0D12}
+.tgl input:focus-visible + .tgl-track{outline:2px solid var(--acc);outline-offset:2px}
+.deck-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:16px;border-top:1px dashed rgba(255,255,255,.12)}
+.deck-actions .btn{justify-content:center;padding:10px 6px;font-size:12px}
+.keys{text-align:center;font-size:9.5px;color:var(--dim);letter-spacing:.12em;margin-top:12px}
+.ticker{position:relative;z-index:2;border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);background:rgba(0,0,0,.28);overflow:hidden;padding:9px 0}
+.ticker-track{display:inline-flex;white-space:nowrap;width:max-content;animation:tick 30s linear infinite}
+.tk{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--dim);text-transform:uppercase;padding-right:3rem}
+@keyframes tick{to{transform:translateX(-50%)}}
+.js .rv{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1);transition-delay:var(--d,0s)}
+.js .rv.in{opacity:1;transform:none}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.loaded .in-up{animation:rise .8s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0s)}
+.mod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.mod-card{padding:20px;display:flex;flex-direction:column;gap:12px;min-height:168px;transition:border-color .3s,transform .3s}
+@media(hover:hover){.mod-card:hover{border-color:var(--edge2);transform:translateY(-2px)}}
+.mod-top{display:flex;gap:12px;align-items:center}
+.mod-ico{width:38px;height:38px;border-radius:10px;border:1px solid var(--edge);display:grid;place-items:center;color:var(--acc);background:rgba(0,0,0,.3);flex:none}
+.mod-name{font-size:14.5px;font-weight:700;line-height:1.4}
+.mod-en{font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:.2em}
+.mod-desc{font-size:12.5px;color:var(--dim);flex:1;line-height:1.7}
+.mod-foot{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px dashed rgba(255,255,255,.1)}
+.mod-state{font-family:var(--mono);font-size:10px;color:var(--ok);letter-spacing:.14em}
+.mod-state.off{color:var(--dim)}
+.bay-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:18px;padding:16px 20px}
+.bay-bar .btn{padding:9px 16px;font-size:12.5px}
+#modCount{color:var(--acc);font-size:12px;letter-spacing:.1em}
+.sys-grid{display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start}
+.sys-aside{position:sticky;top:84px;display:grid;gap:16px}
+.side-card{padding:20px}
+.side-card h3{font-size:13px;letter-spacing:.1em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.side-card h3 .ic{width:15px;height:15px;color:var(--acc)}
+#swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.sw{text-align:left}
+.sw-c{display:block;height:38px;border-radius:8px;border:1px solid rgba(255,255,255,.14);transition:background .5s,transform .15s}
+.sw:hover .sw-c{transform:translateY(-2px)}
+.sw-n{display:block;font-size:9.5px;color:var(--dim);margin-top:5px}
+.sw-h{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink)}
+.st-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed rgba(255,255,255,.08);font-size:12px}
+.st-row:last-child{border-bottom:none}
+.st-row .k{color:var(--dim)}
+.st-row .v{font-family:var(--mono);font-size:11.5px;text-align:right}
+.sys-cards{display:grid;gap:16px}
+.card{padding:24px;transition:border-color .3s,transform .3s}
+@media(hover:hover){.card:hover{border-color:var(--edge2);transform:translateY(-2px)}}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.card-h .ic{width:20px;height:20px;color:var(--acc)}
+.card-h h3{font-size:16px;font-weight:700;letter-spacing:.04em}
+.card p{font-size:13.5px;color:var(--dim)}
+.card-f{margin-top:14px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.1);font-family:var(--mono);font-size:11px;color:var(--acc);letter-spacing:.06em}
+.deploy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.dep-card{padding:22px}
+.dep-card h3{font-size:15px;font-weight:700;margin:8px 0 10px}
+.dep-card p{font-size:12.5px;color:var(--dim);margin-bottom:14px}
+.code{background:rgba(0,0,0,.45);border:1px solid var(--edge);border-radius:12px;overflow:hidden}
+.code-h{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--edge);background:rgba(255,255,255,.03)}
+.code-h .fname{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.14em}
+.copy-btn{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--dim);padding:4px 8px;border-radius:6px;border:1px solid transparent;transition:.2s;letter-spacing:.1em}
+.copy-btn:hover{color:var(--acc);border-color:var(--edge)}
+.copy-btn .ic{width:13px;height:13px}
+.copy-btn .i-check{display:none;color:var(--ok)}
+.copy-btn.ok{color:var(--ok)}
+.copy-btn.ok .i-copy{display:none}
+.copy-btn.ok .i-check{display:block}
+.code pre{padding:14px;overflow:auto;max-height:220px;font-family:var(--mono);font-size:12px;line-height:1.75;color:#C9D6E2;white-space:pre-wrap;word-break:break-all}
+.note{font-size:11.5px;color:var(--dim);margin-top:14px}
+.note code{font-family:var(--mono);font-size:10.5px;color:var(--acc);background:rgba(0,0,0,.4);padding:2px 6px;border-radius:4px}
+.share-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+footer{position:relative;z-index:2;border-top:1px solid var(--edge);background:rgba(4,6,10,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:26px clamp(16px,4vw,40px);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim)}
+footer .f-brand{font-family:var(--disp);font-weight:700;letter-spacing:.22em;color:var(--ink);display:flex;gap:10px;align-items:center}
+footer .f-brand .ic{width:18px;height:18px;color:var(--acc)}
+footer .mono{font-size:10.5px;letter-spacing:.14em}
+#toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:200;display:grid;gap:8px;pointer-events:none;width:max-content;max-width:92vw}
+.toast{background:rgba(8,11,16,.92);border:1px solid var(--edge);border-left:3px solid var(--acc);border-radius:10px;padding:10px 18px;font-size:13px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 30px rgba(0,0,0,.5);animation:tin .3s cubic-bezier(.2,.7,.2,1)}
+.toast.out{animation:tout .25s forwards}
+@keyframes tin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateY(10px)}}
+.noscript{position:relative;z-index:3;max-width:600px;margin:100px auto;padding:24px;text-align:center;background:var(--panel);border:1px solid var(--edge);border-radius:12px}
+.reduced .ticker-track,.reduced .cl,.reduced .chip .dot,.reduced .syncrow .dot,.reduced .ttl span{animation:none}
+.reduced .rv{transition:none}
+@media (prefers-reduced-motion:reduce){.rv{transition:none}.ticker-track,.ttl span{animation:none}}
+@media(max-width:1180px){.vtxt{display:none}.hero-grid{grid-template-columns:1fr}.deck{max-width:720px}.mod-grid{grid-template-columns:repeat(2,1fr)}.deploy-grid{grid-template-columns:1fr}}
+@media(max-width:1000px){.sys-grid{grid-template-columns:1fr}.sys-aside{position:static}}
+@media(max-width:760px){.ver,#navClock{display:none}.nbtn span{display:none}.nbtn{padding:8px}.rng-grid{grid-template-columns:1fr}.kanji{font-size:64vw;top:0;right:-10%}}
+@media(max-width:640px){section{padding:72px 16px}.deck-actions{grid-template-columns:1fr 1fr}.mod-grid{grid-template-columns:1fr}.bay-bar{align-items:flex-start;flex-direction:column}.clockline{margin-top:22px}}
+</style>
+</head>
+<body>
+<a class="skip" href="#overview">本文へスキップ</a>
+<div id="progress" aria-hidden="true"></div>
+<div class="bar top" aria-hidden="true"></div><div class="bar bottom" aria-hidden="true"></div>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div id="spot" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<header id="topnav">
+  <a class="brand" href="#overview" aria-label="FOXBASE ホーム">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3 4l5 3 4-1 4 1 5-3-2 8-7 8-7-8z"/><path d="M9 12l3 3 3-3" stroke-linecap="round"/></svg>
+    <span>FOXBASE</span><em class="ver">1.0</em>
+  </a>
+  <nav class="links" aria-label="セクション">
+    <a class="nav-link act" href="#overview" data-sec="overview">概要</a>
+    <a class="nav-link" href="#modules" data-sec="modules">機能</a>
+    <a class="nav-link" href="#system" data-sec="system">機構</a>
+    <a class="nav-link" href="#deploy" data-sec="deploy">導入</a>
+  </nav>
+  <div class="nav-right">
+    <span id="navClock" class="mono">--:--</span>
+    <button id="shareBtn" class="nbtn" aria-label="URLを共有" title="共有">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4"/></svg><span>共有</span>
+    </button>
+    <button id="sndBtn" class="nbtn on" aria-pressed="true" aria-label="サウンド切替" title="サウンド ON/OFF (M)">
+      <svg class="ic" id="sndOnIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>
+      <svg class="ic hide" id="sndOffIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4z" fill="currentColor" stroke="none"/><path d="M22 9l-6 6M16 9l6 6"/></svg>
+      <span id="sndTxt">ON</span>
+    </button>
+  </div>
+</header>
+
+<noscript><div class="noscript">FOXBASE 1.0 は JavaScript で動作する。ブラウザの JavaScript を有効にしてくれ。</div></noscript>
+
+<main>
+<section id="overview">
+  <div class="kanji" aria-hidden="true">狐</div>
+  <div class="vtxt" aria-hidden="true">時間適応型基地</div>
+  <div class="hero-grid">
+    <div id="heroIntro">
+      <p class="ovl in-up" style="--d:.05s">Adaptive Base Interface — 1.0</p>
+      <h1 class="ttl in-up" style="--d:.15s">FOX<span>BASE</span></h1>
+      <p class="hero-lead in-up" style="--d:.3s">Termuxに一度貼るだけで起動。時刻と季節を読み取り、空・粒子・配色・UIが自動で移ろう。右のデッキはすべて即時反映。公開URLを配れば、誰でもスマホ・PC・iPadから使える。</p>
+      <div class="badges in-up" style="--d:.4s">
+        <span class="badge"><b>VERSION</b> 1.0 FIXED</span>
+        <span class="badge"><b>NO EMOJI</b> CLEAN UI</span>
+        <span class="badge"><b>TERMUX</b> ONE PASTE</span>
+      </div>
+      <div class="chips in-up" style="--d:.5s">
+        <button class="chip" id="chipTime" title="クリックで時刻モード切替 (T)"><span class="dot"></span><span id="chipTimeTxt">AUTO</span></button>
+        <button class="chip" id="chipSeason" title="クリックで季節モード切替 (S)"><span class="dot"></span><span id="chipSeasonTxt">AUTO</span></button>
+        <div class="chip static"><span class="dot"></span><span id="chipNextTxt">--</span></div>
+      </div>
+      <div class="ctas in-up" style="--d:.6s">
+        <a class="btn primary" href="#deck">調整デッキ
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn ghost" href="#deploy">公開と共有</a>
+      </div>
+      <div class="clockline in-up" style="--d:.7s">
+        <div class="clock" aria-label="現在時刻"><span id="ckH">--</span><span class="cl">:</span><span id="ckM">--</span><span class="cl">:</span><span id="ckS">--</span></div>
+        <div><p id="ckDate" class="mono">----.--.--</p><div class="syncrow"><span class="dot"></span><span id="syncTxt">検出中</span></div></div>
+      </div>
+    </div>
+
+    <div class="deck panel in-up" id="deck" style="--d:.35s">
+      <div class="deck-h">
+        <div><p class="ovl">Live Deck</p><h2>大気コントロール</h2></div>
+        <select class="qsel" id="qSel" aria-label="描画品質">
+          <option value="auto">品質: 自動</option><option value="high">品質: 高精細</option><option value="eco">品質: 軽量</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="f-lab"><span class="ovl">Time Phase</span><span class="f-jp">時刻モード</span></div>
+        <div class="seg" id="segTime" role="group" aria-label="時刻モード">
+          <button data-v="auto" class="on" aria-pressed="true">自動</button><button data-v="dawn" aria-pressed="false">明け</button><button data-v="day" aria-pressed="false">昼</button><button data-v="dusk" aria-pressed="false">夕</button><button data-v="night" aria-pressed="false">夜</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="f-lab"><span class="ovl">Season</span><span class="f-jp">季節モード</span></div>
+        <div class="seg" id="segSeason" role="group" aria-label="季節モード">
+          <button data-v="auto" class="on" aria-pressed="true">自動</button><button data-v="spring" aria-pressed="false">春</button><button data-v="summer" aria-pressed="false">夏</button><button data-v="autumn" aria-pressed="false">秋</button><button data-v="winter" aria-pressed="false">冬</button>
+        </div>
+      </div>
+      <div class="presets" id="presets" aria-label="シーンプリセット">
+        <button data-p="default">標準</button><button data-p="calm">静寂</button><button data-p="ember">残照</button><button data-p="firefly">蛍火</button><button data-p="storm">吹雪</button>
+      </div>
+      <div class="rng-grid">
+        <div class="field"><div class="f-lab"><span class="f-jp">粒子密度</span><output id="vDensity">60</output></div><input type="range" id="rDensity" min="0" max="100" value="60" aria-label="粒子密度"></div>
+        <div class="field"><div class="f-lab"><span class="f-jp">風速</span><output id="vWind">35</output></div><input type="range" id="rWind" min="0" max="100" value="35" aria-label="風速"></div>
+        <div class="field"><div class="f-lab"><span class="f-jp">流速</span><output id="vSpeed">x1.00</output></div><input type="range" id="rSpeed" min="10" max="220" value="100" aria-label="流速"></div>
+        <div class="field"><div class="f-lab"><span class="f-jp">発光</span><output id="vGlow">55</output></div><input type="range" id="rGlow" min="0" max="100" value="55" aria-label="発光"></div>
+        <div class="field"><div class="f-lab"><span class="f-jp">オーロラ</span><output id="vAurora">55</output></div><input type="range" id="rAurora" min="0" max="100" value="55" aria-label="オーロラ強度"></div>
+        <div class="field"><div class="f-lab"><span class="f-jp">霧</span><output id="vMist">45</output></div><input type="range" id="rMist" min="0" max="100" value="45" aria-label="霧"></div>
+        <div class="field"><div class="f-lab"><span class="f-jp">視点揺れ</span><output id="vSway">50</output></div><input type="range" id="rSway" min="0" max="100" value="50" aria-label="視点揺れ"></div>
+      </div>
+      <div class="tgl-row">
+        <label class="tgl"><input type="checkbox" id="tGrain" checked><span class="tgl-track" aria-hidden="true"><span class="knob"></span></span><span>グレイン</span></label>
+        <label class="tgl"><input type="checkbox" id="tMotion" checked><span class="tgl-track" aria-hidden="true"><span class="knob"></span></span><span>モーション</span></label>
+        <label class="tgl"><input type="checkbox" id="tLetterbox"><span class="tgl-track" aria-hidden="true"><span class="knob"></span></span><span>シネマバー</span></label>
+      </div>
+      <div class="deck-actions">
+        <button class="btn ghost" id="btnRandom">ランダム</button>
+        <button class="btn ghost" id="btnReset">リセット</button>
+        <button class="btn ghost" id="btnPng">PNG保存</button>
+        <button class="btn ghost" id="btnCfg">設定コピー</button>
+      </div>
+      <p class="keys mono">KEYS — T:時刻 / S:季節 / R:ランダム / G:グレイン / M:サウンド</p>
+    </div>
+  </div>
+</section>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-track" id="tickerTrack"><span class="tk"></span><span class="tk"></span></div></div>
+
+<section id="modules">
+  <div class="sec-h rv">
+    <p class="ovl">02 / Module Bay</p>
+    <h2>機能ベイ</h2>
+    <p class="lead">各機能は独立モジュール。訪問者ごとに起動・停止でき、状態は保存される。新しい機能はここに登録して追加する。</p>
+  </div>
+  <div class="mod-grid">
+    <article class="mod-card panel rv">
+      <div class="mod-top"><span class="mod-ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 12c3-6 6 6 9 0s6 6 9 0M3 6c3-6 6 6 9 0s6 6 9 0M3 18c3-6 6 6 9 0s6 6 9 0"/></svg></span><div><div class="mod-name">大気モーション</div><div class="mod-en">ATMOSPHERE MOTION</div></div></div>
+      <p class="mod-desc">空・粒子・オーロラの時間変化。止めると現在のフレームで静止する。</p>
+      <div class="mod-foot"><span class="mod-state" id="sMotion">ACTIVE</span><label class="tgl"><input type="checkbox" id="mMotion" checked><span class="tgl-track" aria-hidden="true"><span class="knob"></span></span></label></div>
+    </article>
+    <article class="mod-card panel rv" style="--d:.06s">
+      <div class="mod-top"><span class="mod-ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 4 13C4 8 8 4 13 4h7v7a9 9 0 0 1-9 9z"/><path d="M4 21c4-6 8-9 12-11"/></svg></span><div><div class="mod-name">季節粒子</div><div class="mod-en">SEASON PARTICLES</div></div></div>
+      <p class="mod-desc">春は花弁、夏は蛍、秋は落葉、冬は雪。密度スライダーと連動する。</p>
+      <div class="mod-foot"><span class="mod-state" id="sParticles">ACTIVE</span><label class="tgl"><input type="checkbox" id="mParticles" checked><span class="tgl-track" aria-hidden="true"><span class="knob"></span></span></label></div>
+    </article>
+    <article class="mod-card panel rv" style="--d:.12s">
+      <div class="mod-top"><span class="mod-ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 9h.01M16 9h.01M7 14h.01M12 16h.01M17 14h.01M9 5h.01M15 19h.01"/></svg></span><div><div class="mod-name">フィルムグレイン</div><div class="mod-en">FILM GRAIN</div></div></div>
+      <p class="mod-desc">画面全体に微細なノイズを重ね、アニメーションに質感を与える。</p>
+      <div class="mod-foot"><span class="mod-state" id="sGrain">ACTIVE</span><label class="tgl"><input type="checkbox" id="mGrain" checked><span class="tgl-track" aria-hidden="true"><span class="knob"></span></span></label></div>
+    </article>
+    <article class="mod-card panel rv" style="--d:.18s">
+      <div class="mod-top"><span class="mod-ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H2v6h4l5 4z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.4 5.6a9 9 0 0 1 0 12.8"/></svg></span><div><div class="mod-name">環境サウンド</div><div class="mod-en">AMBIENT AUDIO</div></div></div>
+      <p class="mod-desc">風切り音と、テーマ変更時の小さな合図音。ナビのミュートと完全連動。</p>
+      <div class="mod-foot"><span class="mod-state" id="sAudio">ACTIVE</span><label class="tgl"><input type="checkbox" id="mAudio" checked><span class="tgl-track" aria-hidden="true"><span class="knob"></span></span></label></div>
+    </article>
+    <article class="mod-card panel rv" style="--d:.24s">
+      <div class="mod-top"><span class="mod-ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span><div><div class="mod-name">設定の自動保存</div><div class="mod-en">CONFIG AUTOSAVE</div></div></div>
+      <p class="mod-desc">大気・モジュール設定を localStorage に保存。共有端末では切って手動保存にできる。</p>
+      <div class="mod-foot"><span class="mod-state" id="sAutosave">ACTIVE</span><label class="tgl"><input type="checkbox" id="mAutosave" checked><span class="tgl-track" aria-hidden="true"><span class="knob"></span></span></label></div>
+    </article>
+    <article class="mod-card panel rv" style="--d:.3s">
+      <div class="mod-top"><span class="mod-ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4"/></svg></span><div><div class="mod-name">公開リンク共有</div><div class="mod-en">PUBLIC LINK SHARE</div></div></div>
+      <p class="mod-desc">公開URLをOSの共有シートへ。非対応ブラウザではURLをコピーする。</p>
+      <div class="mod-foot"><span class="mod-state">READY</span><button class="btn ghost" id="shareBtn2" style="padding:8px 14px;font-size:12px">共有する</button></div>
+    </article>
+  </div>
+  <div class="bay-bar panel rv" style="--d:.36s">
+    <span class="mono" id="modCount">5 / 5 稼働</span>
+    <div class="ctas"><button class="btn ghost" id="btnAllOn">全モジュール起動</button><button class="btn ghost" id="btnSaveNow">今すぐ保存</button></div>
+  </div>
+</section>
+
+<section id="system">
+  <div class="sec-h rv">
+    <p class="ovl">03 / System</p>
+    <h2>適応エンジン</h2>
+    <p class="lead">現在の状態をリアルタイムに監視する。パレットはクリックでHEXをコピーできる。</p>
+  </div>
+  <div class="sys-grid">
+    <aside class="sys-aside">
+      <div class="side-card panel rv">
+        <h3><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18c-3-3.6-3-14.4 0-18zM3 12h18"/></svg>ライブパレット</h3>
+        <div id="swatches"></div>
+      </div>
+      <div class="side-card panel rv" style="--d:.1s">
+        <h3><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17l6-5-6-5M12 19h8"/></svg>ステータス</h3>
+        <div class="st-row"><span class="k">FPS</span><span class="v" id="stFps">--</span></div>
+        <div class="st-row"><span class="k">CANVAS</span><span class="v" id="stRes">--</span></div>
+        <div class="st-row"><span class="k">PARTICLES</span><span class="v" id="stParts">--</span></div>
+        <div class="st-row"><span class="k">THEME</span><span class="v" id="stTheme">--</span></div>
+        <div class="st-row"><span class="k">QUALITY</span><span class="v" id="stQuality">--</span></div>
+        <div class="st-row"><span class="k">MODULES</span><span class="v" id="stModules">--</span></div>
+        <div class="st-row"><span class="k">SESSION</span><span class="v" id="stUp">--</span></div>
+        <div class="st-row"><span class="k">CONFIG</span><span class="v" id="stSave">--</span></div>
+      </div>
+    </aside>
+    <div class="sys-cards">
+      <article class="card panel rv">
+        <div class="card-h"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><h3>時刻同期</h3></div>
+        <p>明け (5-8時) / 昼 (8-16時) / 夕 (16-19時) / 夜 (19-5時) の4帯。境界はハード切替ではなく、空・太陽・星・配色を連続補間で滑らかに移行させる。</p>
+        <div class="card-f" id="ftTime">--</div>
+      </article>
+      <article class="card panel rv" style="--d:.08s">
+        <div class="card-h"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 4 13C4 8 8 4 13 4h7v7a9 9 0 0 1-9 9z"/><path d="M4 21c4-6 8-9 12-11"/></svg><h3>季節判定</h3></div>
+        <p>月から春 (3-5) / 夏 (6-8) / 秋 (9-11) / 冬 (12-2) を判定。粒子系と副色・極光色が季節に従って入れ替わる。</p>
+        <div class="card-f" id="ftSeason">--</div>
+      </article>
+      <article class="card panel rv" style="--d:.16s">
+        <div class="card-h"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/><rect x="10.5" y="10.5" width="3" height="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg><h3>描画エンジン</h3></div>
+        <p>単一 requestAnimationFrame ループ。品質に応じてDPRと粒子数を調整。グローはスプライトキャッシュ、非表示タブでは停止する。</p>
+        <div class="card-f" id="ftEngine">--</div>
+      </article>
+      <article class="card panel rv" style="--d:.24s">
+        <div class="card-h"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><h3>状態保存</h3></div>
+        <p>設定は自動保存され、リロード後も復元される。自動保存を切れば手動保存モードになり、設定コピーでJSONを持ち出せる。</p>
+        <div class="card-f" id="ftStore">--</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="deploy">
+  <div class="sec-h rv">
+    <p class="ovl">04 / Deploy</p>
+    <h2>導入と運用</h2>
+    <p class="lead">この端末はTermuxワンペーストで設置済み。以下のコマンドだけで起動・停止・公開更新が完結する。</p>
+  </div>
+  <div class="deploy-grid">
+    <div class="dep-card panel rv">
+      <p class="ovl">Start</p><h3>起動 / 再起動</h3>
+      <p>ローカルとLANに固定ポートで公開。同じWi-Fiの全員がアクセスできる。</p>
+      <div class="code"><div class="code-h"><span class="fname">TERMUX</span><button class="copy-btn" data-copy="#cmdStart"><svg class="ic i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><svg class="ic i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 7"/></svg>コピー</button></div><pre><code id="cmdStart">foxbase</code></pre></div>
+      <p class="note">ポート変更: <code>FOXBASE_PORT=9000 foxbase</code></p>
+    </div>
+    <div class="dep-card panel rv" style="--d:.08s">
+      <p class="ovl">Publish</p><h3>公開 固定URL</h3>
+      <p>GitHub Pages に公開/更新。repo権限トークンを一度入力すれば固定URLになる。</p>
+      <div class="code"><div class="code-h"><span class="fname">TERMUX</span><button class="copy-btn" data-copy="#cmdPublish"><svg class="ic i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><svg class="ic i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 7"/></svg>コピー</button></div><pre><code id="cmdPublish">foxbase-publish</code></pre></div>
+      <p class="note">出力された <code>https://USER.github.io/REPO/</code> を全員に共有。</p>
+    </div>
+    <div class="dep-card panel rv" style="--d:.16s">
+      <p class="ovl">Stop</p><h3>停止</h3>
+      <p>サーバーだけを安全に停止。ファイルと設定は残る。</p>
+      <div class="code"><div class="code-h"><span class="fname">TERMUX</span><button class="copy-btn" data-copy="#cmdStop"><svg class="ic i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><svg class="ic i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l5 5L20 7"/></svg>コピー</button></div><pre><code id="cmdStop">foxbase-stop</code></pre></div>
+      <p class="note">設置先: <code>~/foxbase</code> / バージョン <code>1.0</code></p>
+    </div>
+  </div>
+  <div class="share-row rv" style="--d:.2s">
+    <button class="btn primary" id="shareBtn3">URLを共有する</button>
+    <button class="btn ghost" id="btnPng2">現在の空をPNG保存</button>
+  </div>
+</section>
+</main>
+
+<footer>
+  <span class="f-brand"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3 4l5 3 4-1 4 1 5-3-2 8-7 8-7-8z"/><path d="M9 12l3 3 3-3" stroke-linecap="round"/></svg>FOXBASE</span>
+  <span class="mono">VERSION 1.0 — NO EMOJI — ALL DEVICES</span>
+  <span class="mono">FOX × JACK / <span id="ftYear">2026</span></span>
+</footer>
+
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const mixc=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
+const rgba=(c,a)=>`rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`;
+const hex=c=>'#'+c.map(v=>Math.round(clamp(v,0,255)).toString(16).padStart(2,'0')).join('');
+const pad=n=>String(n).padStart(2,'0');
+const pick=a=>a[(Math.random()*a.length)|0];
+const lum=c=>.2126*c[0]+.7152*c[1]+.0722*c[2];
+const WD=['日','月','火','水','木','金','土'];
+const store={
+  ok:(()=>{try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true}catch(e){return false}})(),
+  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+};
+const KEY='foxbase.cfg.1.0';
+const DEF={time:'auto',season:'auto',density:60,wind:35,speed:100,glow:55,aurora:55,mist:45,sway:50,grain:true,motion:!matchMedia('(prefers-reduced-motion: reduce)').matches,particles:true,autosave:true,sound:true,letterbox:false,quality:'auto'};
+let cfg=Object.assign({},DEF,store.get(KEY,{}));
+(function normalize(){
+  if(!['auto','dawn','day','dusk','night'].includes(cfg.time))cfg.time='auto';
+  if(!['auto','spring','summer','autumn','winter'].includes(cfg.season))cfg.season='auto';
+  if(!['auto','high','eco'].includes(cfg.quality))cfg.quality='auto';
+  for(const k of ['density','wind','glow','aurora','mist','sway'])cfg[k]=clamp(+cfg[k]||0,0,100);
+  cfg.speed=clamp(+cfg.speed||100,10,220);
+  for(const k of ['grain','motion','particles','autosave','sound','letterbox'])cfg[k]=!!cfg[k];
+})();
+let saveT=null,lastSave=null;
+function saveCfg(){if(!cfg.autosave)return;clearTimeout(saveT);saveT=setTimeout(()=>{if(store.set(KEY,cfg))lastSave=new Date()},250)}
+function manualSave(){if(store.set(KEY,cfg)){lastSave=new Date();toast('設定を保存した')}else toast('保存できない環境だ')}
+const P_NIGHT={sky0:[7,10,18],sky1:[10,18,38],sky2:[16,32,63],sky3:[27,51,80],sun:[234,242,255],acc:[111,215,255],aur1:[39,224,176],aur2:[62,123,255]};
+const P_DAWN={sky0:[35,36,71],sky1:[108,74,120],sky2:[201,106,111],sky3:[242,166,90],sun:[255,217,160],acc:[255,122,138],aur1:[255,158,122],aur2:[200,107,255]};
+const P_DAY={sky0:[47,125,214],sky1:[99,180,238],sky2:[168,220,247],sky3:[234,246,255],sun:[255,244,214],acc:[23,176,255],aur1:[120,225,255],aur2:[140,255,220]};
+const P_DUSK={sky0:[42,27,78],sky1:[110,46,126],sky2:[196,66,107],sky3:[255,140,66],sun:[255,206,122],acc:[255,79,154],aur1:[255,106,61],aur2:[162,75,255]};
+const MODE_PAL={dawn:P_DAWN,day:P_DAY,dusk:P_DUSK,night:P_NIGHT};
+const MODE_HOUR={dawn:6.3,day:13,dusk:18.05,night:23};
+const TIME_KEYS=[{h:0,p:P_NIGHT},{h:4.5,p:P_NIGHT},{h:6.5,p:P_DAWN},{h:9,p:P_DAY},{h:15.5,p:P_DAY},{h:18,p:P_DUSK},{h:20,p:P_NIGHT},{h:24,p:P_NIGHT}];
+const FIELDS=['sky0','sky1','sky2','sky3','sun','acc','acc2','aur1','aur2'];
+const SEASONS={
+  spring:{jp:'春',en:'SPRING',type:'petal',acc2:[124,232,138],aur1:[255,158,194],aur2:[116,230,168],cols:['#FFB7C9','#FF9DB8','#FFD3DE','#F7A8C0']},
+  summer:{jp:'夏',en:'SUMMER',type:'firefly',acc2:[198,255,79],aur1:[46,230,166],aur2:[23,176,255],cols:['#D8FF6B','#C6FF4F','#E8FFA0']},
+  autumn:{jp:'秋',en:'AUTUMN',type:'leaf',acc2:[255,177,61],aur1:[255,158,61],aur2:[255,90,61],cols:['#FF9E3D','#E0662E','#C94F2A','#FFB13D']},
+  winter:{jp:'冬',en:'WINTER',type:'snow',acc2:[169,214,255],aur1:[111,215,255],aur2:[143,168,255],cols:['#FFFFFF','#EAF4FF','#CFE8FF']}
+};
+const TYPE_SEASON={petal:'spring',firefly:'summer',leaf:'autumn',snow:'winter'};
+const TIME_JP={auto:'自動',dawn:'明け',day:'日中',dusk:'夕暮',night:'夜'};
+const MODE_LABEL={dawn:{jp:'明け',en:'DAWN'},day:{jp:'日中',en:'DAY'},dusk:{jp:'夕暮',en:'DUSK'},night:{jp:'夜',en:'NIGHT'}};
+const PRESETS={
+  default:{time:'auto',season:'auto',density:60,wind:35,speed:100,glow:55,aurora:55,mist:45,sway:50,grain:true,motion:true,letterbox:false,quality:'auto',particles:true},
+  calm:{time:'night',season:'winter',density:25,wind:10,speed:60,glow:35,aurora:30,mist:60,sway:20,grain:true,motion:true,letterbox:true,particles:true},
+  ember:{time:'dusk',season:'autumn',density:70,wind:45,speed:90,glow:75,aurora:65,mist:50,sway:60,grain:true,motion:true,letterbox:true,particles:true},
+  firefly:{time:'night',season:'summer',density:80,wind:20,speed:80,glow:90,aurora:70,mist:35,sway:45,grain:true,motion:true,letterbox:false,particles:true},
+  storm:{time:'night',season:'winter',density:95,wind:85,speed:150,glow:45,aurora:40,mist:75,sway:85,grain:true,motion:true,letterbox:true,particles:true}
+};
+function bandOf(h){if(h<5)return{key:'night',jp:'夜',en:'NIGHT'};if(h<8)return{key:'dawn',jp:'明け',en:'DAWN'};if(h<16)return{key:'day',jp:'日中',en:'DAY'};if(h<19)return{key:'dusk',jp:'夕暮',en:'DUSK'};return{key:'night',jp:'夜',en:'NIGHT'}}
+function monthSeason(m){return m>=3&&m<=5?'spring':m>=6&&m<=8?'summer':m>=9&&m<=11?'autumn':'winter'}
+function resolvedSeason(){return cfg.season==='auto'?monthSeason(new Date().getMonth()+1):cfg.season}
+function palAt(h){let i=0;while(i<TIME_KEYS.length-2&&h>TIME_KEYS[i+1].h)i++;const a=TIME_KEYS[i],b=TIME_KEYS[i+1];let t=clamp((h-a.h)/(b.h-a.h),0,1);t=t*t*(3-2*t);const o={};for(const f of ['sky0','sky1','sky2','sky3','sun','acc','aur1','aur2'])o[f]=mixc(a.p[f],b.p[f],t);return o}
+function computeTarget(d){
+  const h=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
+  const tp=cfg.time==='auto'?palAt(h):MODE_PAL[cfg.time];
+  const sk=cfg.season==='auto'?monthSeason(d.getMonth()+1):cfg.season,sp=SEASONS[sk];
+  return{sky0:tp.sky0.slice(),sky1:tp.sky1.slice(),sky2:tp.sky2.slice(),sky3:tp.sky3.slice(),sun:tp.sun.slice(),acc:tp.acc.slice(),acc2:sp.acc2.slice(),aur1:mixc(tp.aur1,sp.aur1,.55),aur2:mixc(tp.aur2,sp.aur2,.55),hour:cfg.time==='auto'?h:MODE_HOUR[cfg.time],season:sk};
+}
+function clonePal(p){const o={};for(const f of FIELDS)o[f]=p[f].slice();o.hour=p.hour;return o}
+let cur=clonePal(computeTarget(new Date()));
+function easePalette(k){const tgt=computeTarget(new Date());let max=0;for(const f of FIELDS)for(let i=0;i<3;i++){const d=tgt[f][i]-cur[f][i];if(Math.abs(d)>max)max=Math.abs(d);cur[f][i]+=d*k}let dh=tgt.hour-cur.hour;if(dh>12)dh-=24;if(dh<-12)dh+=24;cur.hour=(cur.hour+dh*k+24)%24;return{max,season:tgt.season}}
+const cv=$('#scene'),cx=cv.getContext('2d',{alpha:false});
+const toasts=$('#toasts'),metaTheme=$('#metaTheme'),progress=$('#progress');
+const ckH=$('#ckH'),ckM=$('#ckM'),ckS=$('#ckS'),ckDate=$('#ckDate'),navClock=$('#navClock'),syncTxt=$('#syncTxt');
+const chipTimeTxt=$('#chipTimeTxt'),chipSeasonTxt=$('#chipSeasonTxt'),chipNextTxt=$('#chipNextTxt');
+const segTime=$('#segTime'),segSeason=$('#segSeason'),qSel=$('#qSel');
+const rDensity=$('#rDensity'),rWind=$('#rWind'),rSpeed=$('#rSpeed'),rGlow=$('#rGlow'),rAurora=$('#rAurora'),rMist=$('#rMist'),rSway=$('#rSway');
+const vDensity=$('#vDensity'),vWind=$('#vWind'),vSpeed=$('#vSpeed'),vGlow=$('#vGlow'),vAurora=$('#vAurora'),vMist=$('#vMist'),vSway=$('#vSway');
+const tGrain=$('#tGrain'),tMotion=$('#tMotion'),tLetterbox=$('#tLetterbox');
+const sndBtn=$('#sndBtn'),sndTxt=$('#sndTxt'),sndOnIco=$('#sndOnIco'),sndOffIco=$('#sndOffIco');
+const mMotion=$('#mMotion'),mParticles=$('#mParticles'),mGrain=$('#mGrain'),mAudio=$('#mAudio'),mAutosave=$('#mAutosave');
+const heroIntro=$('#heroIntro'),tickerTrack=$('#tickerTrack');
+function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;toasts.appendChild(el);while(toasts.children.length>3)toasts.firstChild.remove();setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),260)},2400)}
+const audio={ctx:null,master:null,wg:null,wf:null,dead:false};
+function ensureAudio(){
+  if(!cfg.sound||audio.dead)return;
+  if(audio.ctx){audio.ctx.resume().catch(()=>{});return}
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC();
+    const master=ctx.createGain();master.gain.value=.9;master.connect(ctx.destination);
+    const len=ctx.sampleRate*2,buf=ctx.createBuffer(1,len,ctx.sampleRate),ch=buf.getChannelData(0);let lv=0;
+    for(let i=0;i<len;i++){const w=Math.random()*2-1;lv=(lv+.02*w)/1.02;ch[i]=lv*3.5}
+    const src=ctx.createBufferSource();src.buffer=buf;src.loop=true;
+    const wf=ctx.createBiquadFilter();wf.type='lowpass';wf.frequency.value=320;wf.Q.value=.8;
+    const wg=ctx.createGain();wg.gain.value=.04;
+    src.connect(wf);wf.connect(wg);wg.connect(master);
+    const lfo=ctx.createOscillator();lfo.frequency.value=.06;const lg=ctx.createGain();lg.gain.value=110;
+    lfo.connect(lg);lg.connect(wf.frequency);src.start();lfo.start();
+    Object.assign(audio,{ctx,master,wg,wf});updateWind();ctx.resume().catch(()=>{});
+  }catch(e){audio.dead=true}
+}
+function updateWind(){if(!audio.ctx)return;const t=audio.ctx.currentTime;audio.wg.gain.setTargetAtTime(.045*(.3+.7*cfg.wind/100),t,.2);audio.wf.frequency.setTargetAtTime(260+cfg.wind*3.2,t,.2)}
+function chime(f){
+  if(!cfg.sound||!audio.ctx||audio.ctx.state!=='running')return;
+  const ctx=audio.ctx,t=ctx.currentTime;
+  [[f,0],[f*1.335,.1]].forEach(([fr,dl])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=fr;g.gain.setValueAtTime(0,t+dl);g.gain.linearRampToValueAtTime(.09,t+dl+.03);g.gain.exponentialRampToValueAtTime(.0001,t+dl+.55);o.connect(g);g.connect(audio.master);o.start(t+dl);o.stop(t+dl+.7)});
+}
+function syncSound(){sndBtn.classList.toggle('on',cfg.sound);sndBtn.setAttribute('aria-pressed',String(cfg.sound));sndTxt.textContent=cfg.sound?'ON':'OFF';sndOnIco.classList.toggle('hide',!cfg.sound);sndOffIco.classList.toggle('hide',cfg.sound);if(audio.master)audio.master.gain.setTargetAtTime(cfg.sound?.9:0,audio.ctx.currentTime,.06)}
+function toggleSound(){cfg.sound=!cfg.sound;if(cfg.sound)ensureAudio();applyCfg();toast(cfg.sound?'サウンド ON':'サウンド OFF')}
+sndBtn.addEventListener('click',toggleSound);
+const kick=()=>{ensureAudio();window.removeEventListener('pointerdown',kick);window.removeEventListener('keydown',kick)};
+window.addEventListener('pointerdown',kick);window.addEventListener('keydown',kick);
+document.addEventListener('visibilitychange',()=>{if(!audio.ctx)return;if(document.hidden)audio.ctx.suspend().catch(()=>{});else if(cfg.sound)audio.ctx.resume().catch(()=>{})});
+let W=0,H=0,DPR=1,dirty=true,stars=[],ridgeF=[],ridgeN=[],parts=[];
+let px=0,py=0,tx=0,ty=0;
+const seedF=Math.random()*100,seedN=Math.random()*100;
+let grainPat=null;const glowCache=new Map();
+function qualityConf(){return cfg.quality==='high'?{dpr:2,mul:1.25}:cfg.quality==='eco'?{dpr:1,mul:.55}:{dpr:1.75,mul:1}}
+function makeGrain(){const g=document.createElement('canvas');g.width=g.height=140;const gc=g.getContext('2d'),im=gc.createImageData(140,140);for(let i=0;i<im.data.length;i+=4){const v=110+(Math.random()*90|0);im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=18}gc.putImageData(im,0,0);grainPat=cx.createPattern(g,'repeat')}
+function makeStars(){stars=[];const n=clamp(Math.round(W*H/9000),60,240);for(let i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H*.62,r:.6+Math.random()*1.1,s:.5+Math.random()*2,p:Math.random()*TAU})}
+function ridgeLine(seed,base,amp){const pts=[];for(let x=-80;x<=W+80;x+=26)pts.push([x,base+Math.sin(x*.006+seed)*amp+Math.sin(x*.017+seed*2.7)*amp*.35+Math.sin(x*.0023+seed*1.3)*amp*1.6]);return pts}
+function makeRidges(){ridgeF=ridgeLine(seedF,H*.62,H*.035);ridgeN=ridgeLine(seedN,H*.76,H*.05)}
+function resize(){const q=qualityConf();DPR=Math.min(window.devicePixelRatio||1,q.dpr);W=window.innerWidth;H=window.innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.width=W+'px';cv.style.height=H+'px';cx.setTransform(DPR,0,0,DPR,0,0);makeStars();makeRidges();dirty=true}
+window.addEventListener('resize',resize);
+function hexRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+function glowSprite(col){let s=glowCache.get(col);if(s)return s;s=document.createElement('canvas');s.width=s.height=64;const c=s.getContext('2d'),rgb=hexRgb(col);const g=c.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,rgba(rgb,.8));g.addColorStop(.4,rgba(rgb,.28));g.addColorStop(1,rgba(rgb,0));c.fillStyle=g;c.fillRect(0,0,64,64);glowCache.set(col,s);return s}
+function colFor(type){return pick(SEASONS[TYPE_SEASON[type]].cols)}
+function spawn(type,anyY){
+  const r=Math.random,p={type,age:0,depth:.35+r()*.65,seed:r()*TAU,life:8+r()*14,col:colFor(type),rot:r()*TAU};
+  if(type==='firefly'){p.bx=r()*W;p.by=H*(.25+r()*.6);p.a=.3+r()*.7;p.b=.3+r()*.7;p.br=.6+r()*1.6;p.sz=10+r()*14;p.x=p.bx;p.y=p.by}
+  else{p.x=r()*W;p.y=anyY?r()*H:-20-r()*40;p.vy=type==='leaf'?26+r()*38:type==='petal'?18+r()*26:12+r()*22;p.vr=(r()-.5)*(type==='leaf'?4:2);p.sw=8+r()*20;p.sz=type==='snow'?1.2+r()*2.2:4.5+r()*4.5;p.cr=type==='snow'&&r()<.09}
+  return p;
+}
+const MAXP={petal:150,firefly:95,leaf:130,snow:190};
+function syncParticles(seasonKey){const type=SEASONS[seasonKey].type,n=cfg.particles?Math.round(MAXP[type]*qualityConf().mul*cfg.density/100):0;while(parts.length<n)parts.push(spawn(type,true));if(parts.length>n)parts.length=n}
+function ageParticles(){parts.forEach(p=>{if(Math.random()<.6)p.life=Math.min(p.life,Math.random()*2.5)})}
+function updateParticles(dt,type,tt){
+  const wind=cfg.wind/100*70;
+  for(const p of parts){
+    p.age+=dt;p.life-=dt;if(p.life<=0){Object.assign(p,spawn(type,false));continue}
+    if(p.type==='firefly'){p.bx+=wind*.12*dt;if(p.bx>W+60)p.bx=-60;p.x=p.bx+Math.sin(tt*p.a+p.seed)*44*p.depth;p.y=p.by+Math.cos(tt*p.b+p.seed*1.7)*26}
+    else{p.x+=(wind*(.4+.6*p.depth)+Math.sin(tt*.9+p.seed)*p.sw)*dt;p.y+=p.vy*(.6+.6*p.depth)*dt;p.rot+=p.vr*dt;if(p.x>W+40)p.x=-40;if(p.x<-40)p.x=W+40;if(p.y>H+30)Object.assign(p,spawn(type,false))}
+  }
+}
+function drawParticles(tt,sw){
+  const glowF=.5+.9*cfg.glow/100;
+  for(const p of parts){
+    const fade=Math.min(1,p.age/1.2),x=p.x+px*22*p.depth*sw,y=p.y+py*10*p.depth*sw;
+    if(p.type==='firefly'){const bl=Math.max(0,Math.sin(tt*p.br+p.seed)),a=(.12+.88*bl*bl*bl)*fade,s=p.sz*glowF;cx.globalAlpha=a*.85;cx.drawImage(glowSprite(p.col),x-s/2,y-s/2,s,s);cx.globalAlpha=Math.min(1,a+.15);cx.fillStyle='#F4FFD0';cx.beginPath();cx.arc(x,y,1.3,0,TAU);cx.fill()}
+    else if(p.type==='snow'){
+      if(p.cr){cx.save();cx.translate(x,y);cx.rotate(p.rot*.3);cx.globalAlpha=.85*fade;cx.strokeStyle='rgba(235,246,255,.9)';cx.lineWidth=1;const l=p.sz*3.2;cx.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;cx.moveTo(0,0);cx.lineTo(Math.cos(a)*l,Math.sin(a)*l)}cx.stroke();cx.restore()}
+      else{const s=p.sz*6*glowF;cx.globalAlpha=.4*fade;cx.drawImage(glowSprite(p.col),x-s/2,y-s/2,s,s);cx.globalAlpha=.9*fade;cx.fillStyle=p.col;cx.beginPath();cx.arc(x,y,p.sz,0,TAU);cx.fill()}
+    }else{cx.save();cx.translate(x,y);cx.rotate(p.rot);cx.scale(p.sz/7,p.sz/7);cx.globalAlpha=.88*fade;cx.fillStyle=p.col;cx.beginPath();cx.moveTo(0,-6);cx.bezierCurveTo(4.5,-3.5,4.5,2.5,0,6);cx.bezierCurveTo(-4.5,2.5,-4.5,-3.5,0,-6);cx.fill();if(p.type==='leaf'){cx.strokeStyle='rgba(60,20,5,.35)';cx.lineWidth=.7;cx.beginPath();cx.moveTo(0,-5.5);cx.lineTo(0,5.5);cx.stroke()}cx.restore()}
+  }
+  cx.globalAlpha=1;
+}
+function drawRidge(pts,color,dx,sw){cx.fillStyle=color;cx.beginPath();cx.moveTo(-90+dx,H+90);for(const[x,y]of pts)cx.lineTo(x+dx,y+py*4*sw);cx.lineTo(W+90+dx,H+90);cx.closePath();cx.fill()}
+function drawCelestial(sw){
+  const h=cur.hour,day=h>=5.5&&h<=18.5;let t;if(day)t=(h-5.5)/13;else{const hh=h>18.5?h-18.5:h+5.5;t=hh/11}
+  const x=W*(.14+.72*t)+px*10*sw,y=H*(.7-.52*Math.sin(Math.PI*t))+py*6*sw;
+  const r=day?Math.min(W,H)*.045+14:Math.min(W,H)*.035+10,gf=.35+.65*cfg.glow/100,reach=r*(day?7:5);
+  const g=cx.createRadialGradient(x,y,0,x,y,reach);g.addColorStop(0,rgba(cur.sun,(day?.5:.35)*gf));g.addColorStop(1,rgba(cur.sun,0));
+  cx.fillStyle=g;cx.fillRect(x-reach,y-reach,reach*2,reach*2);
+  cx.fillStyle=rgba(cur.sun,.95);cx.beginPath();cx.arc(x,y,r,0,TAU);cx.fill();
+  if(!day){cx.fillStyle=rgba(cur.sky0,.92);cx.beginPath();cx.arc(x+r*.38,y-r*.18,r*.86,0,TAU);cx.fill()}
+}
+function drawAurora(tt,dark,sw){
+  const I=cfg.aurora/100*(.16+.84*dark);if(I<.02)return;
+  cx.globalCompositeOperation='lighter';
+  for(let r=0;r<3;r++){
+    const col=r===1?cur.aur2:mixc(cur.aur1,cur.aur2,r*.5),baseY=H*(.22+r*.085)+py*8*sw,amp=H*.045*(1+r*.45),th=H*(.085+.03*r);
+    const g=cx.createLinearGradient(0,baseY-amp*2.2,0,baseY+th+amp*2.2);g.addColorStop(0,rgba(col,0));g.addColorStop(.35,rgba(col,.16*I));g.addColorStop(.75,rgba(col,.05*I));g.addColorStop(1,rgba(col,0));
+    cx.fillStyle=g;const top=[];for(let x=-40;x<=W+40;x+=26)top.push([x,baseY+Math.sin(x*.0042+tt*.32+r*2.4)*amp+Math.sin(x*.0011-tt*.13+r*1.1)*amp*1.8]);
+    cx.beginPath();cx.moveTo(top[0][0],top[0][1]);for(const[x,y]of top)cx.lineTo(x,y);for(let i=top.length-1;i>=0;i--){const[x,y]=top[i];cx.lineTo(x,y+th*(.7+.5*Math.sin(x*.002+tt*.2+r)))}cx.closePath();cx.fill();
+  }
+  cx.globalCompositeOperation='source-over';
+}
+function draw(tt){
+  const sw=cfg.sway/50,dark=clamp(1-lum(cur.sky0)/95,0,1);
+  cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
+  const sky=cx.createLinearGradient(0,0,0,H);sky.addColorStop(0,hex(cur.sky0));sky.addColorStop(.42,hex(cur.sky1));sky.addColorStop(.72,hex(cur.sky2));sky.addColorStop(1,hex(cur.sky3));
+  cx.fillStyle=sky;cx.fillRect(0,0,W,H);
+  if(dark>.04){cx.fillStyle='#FFFFFF';for(const s of stars){cx.globalAlpha=dark*(.35+.65*Math.pow(Math.sin(tt*s.s+s.p),2));cx.fillRect(s.x+px*6*sw,s.y+py*3*sw,s.r,s.r)}cx.globalAlpha=1}
+  drawCelestial(sw);drawAurora(tt,dark,sw);
+  drawRidge(ridgeF,hex(mixc(mixc(cur.sky0,[4,6,11],.62),cur.acc,.05)),px*12*sw,sw);
+  drawRidge(ridgeN,hex(mixc(cur.sky0,[2,3,7],.8)),px*26*sw,sw);
+  const mistA=.3*cfg.mist/100,mist=cx.createLinearGradient(0,H*.62,0,H);mist.addColorStop(0,rgba(cur.sky3,0));mist.addColorStop(1,rgba(cur.sky3,mistA));
+  cx.fillStyle=mist;cx.fillRect(0,H*.62,W,H*.38);
+  drawParticles(tt,sw);
+  if(cfg.grain&&grainPat){const ox=(Math.random()*140)|0,oy=(Math.random()*140)|0;cx.save();cx.globalAlpha=.5;cx.fillStyle=grainPat;cx.translate(-ox,-oy);cx.fillRect(0,0,W+140,H+140);cx.restore();cx.globalAlpha=1}
+}
+let last=performance.now(),tt=0,fps=60;const t0=Date.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  if(document.hidden){last=now;return}
+  let dt=(now-last)/1000;last=now;if(dt>.1)dt=.1;
+  const k=cfg.motion?1-Math.exp(-dt*2.4):1,{max,season}=easePalette(k);
+  px+=(tx-px)*Math.min(1,dt*3);py+=(ty-py)*Math.min(1,dt*3);
+  if(!cfg.motion&&!dirty&&max<.6)return;
+  const sdt=dt*cfg.speed/100;if(cfg.motion)tt+=sdt;
+  syncParticles(season);if(cfg.motion)updateParticles(sdt,SEASONS[season].type,tt);
+  draw(tt);fps=fps*.92+(1/Math.max(dt,1e-3))*.08;dirty=false;
+}
+let varCache='';
+const SW_FIELDS=[['sky0','天頂'],['sky1','中空'],['sky3','地平'],['acc','主色'],['acc2','副色'],['aur1','極光A'],['aur2','極光B'],['sun','天体']];
+const swRefs=[];
+function buildSwatches(){const box=$('#swatches');box.innerHTML='';swRefs.length=0;for(const[f,name]of SW_FIELDS){const b=document.createElement('button');b.className='sw';b.type='button';b.title='HEXをコピー';b.innerHTML='<span class="sw-c"></span><span class="sw-n"></span><span class="sw-h"></span>';b.querySelector('.sw-n').textContent=name;b.addEventListener('click',async()=>{const h=hex(cur[f]);toast(await copyText(h)?h+' をコピーした':'コピー失敗')});box.appendChild(b);swRefs.push({f,c:b.querySelector('.sw-c'),h:b.querySelector('.sw-h')})}}
+function pushVars(){const v={'--acc':hex(cur.acc),'--acc2':hex(cur.acc2),'--aur1':hex(cur.aur1),'--aur2':hex(cur.aur2),'--sky0':hex(cur.sky0),'--sky3':hex(cur.sky3),'--edge':rgba(cur.acc,.22),'--edge2':rgba(cur.acc,.48),'--glowc':rgba(cur.acc,.30)};const key=JSON.stringify(v);if(key===varCache)return;varCache=key;const rs=document.documentElement.style;for(const k in v)rs.setProperty(k,v[k]);metaTheme.setAttribute('content',v['--sky0']);for(const s of swRefs){s.c.style.background=hex(cur[s.f]);s.h.textContent=hex(cur[s.f]).toUpperCase()}}
+function nextBoundaryStr(d){const h=d.getHours()+d.getMinutes()/60,bs=[[5,'明け'],[8,'日中'],[16,'夕暮'],[19,'夜']];for(const[b,l]of bs)if(b>h)return pad(b)+':00 '+l;return'05:00 明け (明日)'}
+function fmtDur(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+':'+pad(m)+':'+pad(s%60):pad(m)+':'+pad(s%60)}
+let lastTick='',tickN=0;
+function updateTicker(d,bd,sk){const str=SEASONS[sk].en+' PROTOCOL ACTIVE — '+d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+' — LOCAL SYNC '+bd.en+' — FOXBASE 1.0 — ONE PASTE — NO EMOJI — ALL DEVICES — ';tickerTrack.children[0].textContent=str;tickerTrack.children[1].textContent=str}
+function moduleCount(){return[cfg.motion,cfg.particles,cfg.grain,cfg.sound,cfg.autosave].filter(Boolean).length}
+function clockTick(){
+  const d=new Date(),h=d.getHours(),m=d.getMinutes(),s=d.getSeconds();
+  ckH.textContent=pad(h);ckM.textContent=pad(m);ckS.textContent=pad(s);
+  ckDate.textContent=d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate())+' ('+WD[d.getDay()]+')';
+  navClock.textContent=pad(h)+':'+pad(m);
+  const bd=cfg.time==='auto'?bandOf(h+m/60):MODE_LABEL[cfg.time],sk=resolvedSeason(),sp=SEASONS[sk];
+  chipTimeTxt.textContent=(cfg.time==='auto'?'AUTO・':'固定・')+bd.jp+' / '+bd.en;
+  chipSeasonTxt.textContent=(cfg.season==='auto'?'AUTO・':'固定・')+sp.jp+' / '+sp.en;
+  chipNextTxt.textContent=cfg.time==='auto'?'次: '+nextBoundaryStr(d):'AUTOで自動切替';
+  syncTxt.textContent=sp.en+' / '+bd.en+' を検出';
+  $('#ftTime').textContent='現在: '+bd.jp+(cfg.time==='auto'?' / 次: '+nextBoundaryStr(d):' (固定モード)');
+  $('#ftSeason').textContent='現在: '+sp.jp+' / '+(d.getMonth()+1)+'月判定 / 粒子: '+(cfg.particles?sp.type.toUpperCase():'OFF');
+  pushVars();
+  const tk=bd.key+sk+cfg.time+cfg.season+cfg.particles;if(tk!==lastTick){lastTick=tk;updateTicker(d,bd,sk)}
+  if(++tickN%2===0){
+    $('#stFps').textContent=cfg.motion?Math.round(fps):'STATIC';
+    $('#stRes').textContent=cv.width+'×'+cv.height+' @'+DPR.toFixed(2);
+    $('#stParts').textContent=parts.length;
+    $('#stTheme').textContent=bd.en+' / '+sp.en;
+    $('#stQuality').textContent=cfg.quality.toUpperCase();
+    $('#stModules').textContent=moduleCount()+' / 5';
+    $('#stUp').textContent=fmtDur(Date.now()-t0);
+    $('#stSave').textContent=!store.ok?'メモリのみ':!cfg.autosave?'手動モード':lastSave?pad(lastSave.getHours())+':'+pad(lastSave.getMinutes())+':'+pad(lastSave.getSeconds())+' 保存':'未保存';
+    $('#ftEngine').textContent=(cfg.motion?Math.round(fps)+' FPS':'STATIC')+' / 粒子 '+parts.length+' / DPR '+DPR.toFixed(2)+' / '+cfg.quality.toUpperCase();
+    $('#ftStore').textContent=!store.ok?'保存不可 (メモリのみ)':cfg.autosave?'localStorage に自動保存':'自動保存 OFF — 手動保存モード';
+  }
+}
+let lastSeason=resolvedSeason();
+function setSeg(box,v){[...box.children].forEach(b=>{const on=b.dataset.v===v;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))})}
+function setRng(input,out,v,fmt){input.value=v;out.textContent=fmt(v);input.style.setProperty('--p',((v-+input.min)/(+input.max-+input.min)*100)+'%')}
+function setModState(id,on){const el=$('#'+id);el.textContent=on?'ACTIVE':'OFF';el.classList.toggle('off',!on)}
+function applyCfg(o){
+  o=o||{};
+  setSeg(segTime,cfg.time);setSeg(segSeason,cfg.season);qSel.value=cfg.quality;
+  setRng(rDensity,vDensity,cfg.density,v=>v);setRng(rWind,vWind,cfg.wind,v=>v);setRng(rSpeed,vSpeed,cfg.speed,v=>'x'+(v/100).toFixed(2));setRng(rGlow,vGlow,cfg.glow,v=>v);setRng(rAurora,vAurora,cfg.aurora,v=>v);setRng(rMist,vMist,cfg.mist,v=>v);setRng(rSway,vSway,cfg.sway,v=>v);
+  rDensity.disabled=!cfg.particles;vDensity.textContent=cfg.particles?cfg.density:'OFF';
+  tGrain.checked=cfg.grain;tMotion.checked=cfg.motion;tLetterbox.checked=cfg.letterbox;
+  mMotion.checked=cfg.motion;mParticles.checked=cfg.particles;mGrain.checked=cfg.grain;mAudio.checked=cfg.sound;mAutosave.checked=cfg.autosave;
+  setModState('sMotion',cfg.motion);setModState('sParticles',cfg.particles);setModState('sGrain',cfg.grain);setModState('sAudio',cfg.sound);setModState('sAutosave',cfg.autosave);
+  $('#modCount').textContent=moduleCount()+' / 5 稼働';
+  document.body.classList.toggle('reduced',!cfg.motion);document.body.classList.toggle('letterbox',cfg.letterbox);
+  syncSound();
+  const rs=resolvedSeason();if(rs!==lastSeason){lastSeason=rs;ageParticles()}
+  dirty=true;updateWind();if(o.save!==false)saveCfg();
+}
+segTime.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cfg.time=b.dataset.v;applyCfg();chime(660);toast('時刻モード: '+TIME_JP[cfg.time])});
+segSeason.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cfg.season=b.dataset.v;applyCfg();chime(520);toast('季節モード: '+(cfg.season==='auto'?'自動':SEASONS[cfg.season].jp))});
+qSel.addEventListener('change',()=>{cfg.quality=qSel.value;resize();applyCfg();toast('描画品質: '+cfg.quality)});
+[[rDensity,'density',vDensity,v=>v],[rWind,'wind',vWind,v=>v],[rSpeed,'speed',vSpeed,v=>'x'+(v/100).toFixed(2)],[rGlow,'glow',vGlow,v=>v],[rAurora,'aurora',vAurora,v=>v],[rMist,'mist',vMist,v=>v],[rSway,'sway',vSway,v=>v]].forEach(([input,key,out,fmt])=>{input.addEventListener('input',()=>{cfg[key]=+input.value;setRng(input,out,cfg[key],fmt);dirty=true;if(key==='wind')updateWind();saveCfg()})});
+tGrain.addEventListener('change',()=>{cfg.grain=tGrain.checked;applyCfg()});
+tMotion.addEventListener('change',()=>{cfg.motion=tMotion.checked;applyCfg();toast(cfg.motion?'モーション ON':'モーション OFF (静止フレーム)')});
+tLetterbox.addEventListener('change',()=>{cfg.letterbox=tLetterbox.checked;applyCfg();toast(cfg.letterbox?'シネマバー ON':'シネマバー OFF')});
+[['mMotion','motion','大気モーション'],['mParticles','particles','季節粒子'],['mGrain','grain','グレイン'],['mAudio','sound','環境サウンド'],['mAutosave','autosave','自動保存']].forEach(([id,key,name])=>{$('#'+id).addEventListener('change',e=>{cfg[key]=e.target.checked;if(key==='sound'&&cfg.sound)ensureAudio();applyCfg();if(key==='autosave'&&cfg.autosave)saveCfg();chime(500);toast(name+': '+(cfg[key]?'ON':'OFF'))})});
+const TIME_ORDER=['auto','dawn','day','dusk','night'],SEASON_ORDER=['auto','spring','summer','autumn','winter'];
+function cycleTime(){cfg.time=TIME_ORDER[(TIME_ORDER.indexOf(cfg.time)+1)%TIME_ORDER.length];applyCfg();chime(660);toast('時刻モード: '+TIME_JP[cfg.time])}
+function cycleSeason(){cfg.season=SEASON_ORDER[(SEASON_ORDER.indexOf(cfg.season)+1)%SEASON_ORDER.length];applyCfg();chime(520);toast('季節モード: '+(cfg.season==='auto'?'自動':SEASONS[cfg.season].jp))}
+$('#chipTime').addEventListener('click',cycleTime);$('#chipSeason').addEventListener('click',cycleSeason);
+$('#presets').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Object.assign(cfg,PRESETS[b.dataset.p]);resize();applyCfg();chime(700);toast('プリセット: '+b.textContent)});
+function randomize(){const ri=(a,b)=>a+Math.round(Math.random()*(b-a));cfg.time=pick(TIME_ORDER);cfg.season=pick(SEASON_ORDER);cfg.density=ri(30,90);cfg.wind=ri(10,80);cfg.speed=ri(60,160);cfg.glow=ri(30,90);cfg.aurora=ri(25,90);cfg.mist=ri(20,80);cfg.sway=ri(20,90);cfg.letterbox=Math.random()<.3;applyCfg();chime(740);toast('ランダム大気を適用した')}
+$('#btnRandom').addEventListener('click',randomize);
+$('#btnReset').addEventListener('click',()=>{cfg=Object.assign({},DEF);resize();applyCfg();chime(440);toast('初期設定にリセットした')});
+$('#btnAllOn').addEventListener('click',()=>{cfg.motion=cfg.particles=cfg.grain=cfg.sound=cfg.autosave=true;ensureAudio();applyCfg();saveCfg();chime(760);toast('全モジュールを起動した')});
+$('#btnSaveNow').addEventListener('click',manualSave);
+function exportPng(){try{const d=new Date(),a=document.createElement('a');a.download='foxbase-1.0-'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds())+'.png';a.href=cv.toDataURL('image/png');a.click();toast('現在の空をPNG保存した')}catch(e){toast('PNG保存に失敗')}}
+$('#btnPng').addEventListener('click',exportPng);$('#btnPng2').addEventListener('click',exportPng);
+$('#btnCfg').addEventListener('click',async()=>{const j=JSON.stringify({app:'FOXBASE',version:'1.0',cfg,resolved:{band:bandOf(new Date().getHours()).en,season:SEASONS[resolvedSeason()].en}},null,2);toast(await copyText(j)?'設定JSONをコピーした':'コピー失敗')});
+window.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select'))return;const k=e.key.toLowerCase();if(k==='t')cycleTime();else if(k==='s')cycleSeason();else if(k==='r')randomize();else if(k==='m')toggleSound();else if(k==='g'){cfg.grain=!cfg.grain;applyCfg();toast(cfg.grain?'グレイン ON':'グレイン OFF')}});
+async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch(e){}try{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0;left:-999px';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok}catch(e){return false}}
+$$('.copy-btn').forEach(btn=>{btn.addEventListener('click',async()=>{const el=$(btn.dataset.copy);if(!el)return;const ok=await copyText(el.textContent);if(ok){btn.classList.add('ok');setTimeout(()=>btn.classList.remove('ok'),1300)}toast(ok?'コピーした':'コピー失敗 — 手動で選択してコピーしてくれ')})});
+async function shareSite(){const url=location.href.split('#')[0];if(!/^https?:$/.test(location.protocol)){toast('ローカル実行中 — 公開後にURLを共有できる');return}if(navigator.share){try{await navigator.share({title:'FOXBASE 1.0',text:'時間と季節に適応するベースUI',url});return}catch(e){if(e&&e.name==='AbortError')return}}toast(await copyText(url)?'URLをコピーした — 全員に貼れ':'コピー失敗')}
+$('#shareBtn').addEventListener('click',shareSite);$('#shareBtn2').addEventListener('click',shareSite);$('#shareBtn3').addEventListener('click',shareSite);
+const secIds=['overview','modules','system','deploy'];
+if('IntersectionObserver'in window){const nio=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)$$('.nav-link').forEach(a=>a.classList.toggle('act',a.dataset.sec===e.target.id))})},{rootMargin:'-40% 0px -55% 0px'});secIds.forEach(id=>nio.observe(document.getElementById(id)));const rio=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rio.unobserve(e.target)}})},{threshold:.12});$$('.rv').forEach(el=>rio.observe(el))}else{$$('.rv').forEach(el=>el.classList.add('in'))}
+let ptrRaf=false;
+window.addEventListener('pointermove',e=>{
+  tx=(e.clientX/Math.max(W,1)-.5)*2;ty=(e.clientY/Math.max(H,1)-.5)*2;
+  if(!ptrRaf){ptrRaf=true;requestAnimationFrame(()=>{ptrRaf=false;const rs=document.documentElement.style;rs.setProperty('--mx',tx.toFixed(3));rs.setProperty('--my',ty.toFixed(3));rs.setProperty('--sx',(e.clientX/Math.max(W,1)*100).toFixed(2)+'%');rs.setProperty('--sy',(e.clientY/Math.max(H,1)*100).toFixed(2)+'%')})}
+},{passive:true});
+let scrRaf=false;
+window.addEventListener('scroll',()=>{if(scrRaf)return;scrRaf=true;requestAnimationFrame(()=>{scrRaf=false;const sy=window.scrollY,max=Math.max(1,document.documentElement.scrollHeight-window.innerHeight);progress.style.transform='scaleX('+clamp(sy/max,0,1).toFixed(4)+')';if(cfg.motion&&sy<H){heroIntro.style.transform='translateY('+(sy*.14).toFixed(1)+'px)';heroIntro.style.opacity=Math.max(0,1-sy/(H*.95)).toFixed(3)}else if(!cfg.motion){heroIntro.style.transform='';heroIntro.style.opacity=''}})},{passive:true});
+$('#ftYear').textContent=new Date().getFullYear();
+resize();makeGrain();buildSwatches();applyCfg({save:false});clockTick();setInterval(clockTick,250);requestAnimationFrame(frame);requestAnimationFrame(()=>document.body.classList.add('loaded'));
+})();
+</script>
+</body>
+</html>
